@@ -29,6 +29,14 @@ let state = {
         usdValue: 100,
         arsValue: 156000,
         inlineTargetInputId: null
+    },
+    allocationState: {
+        strategy: 'growth',
+        savingsPct: 15,
+        adsPct: 20,
+        opsPct: 15,
+        partnersPct: 50,
+        settlementStrategy: 'growth'
     }
 };
 
@@ -246,6 +254,7 @@ function renderDashboard() {
     const otherTotal = filteredExpenses.filter(e => e.category === 'otro').reduce((s, e) => s + Number(e.amount), 0);
 
     renderCharts(infraTotal, adsTotal, freeTotal, otherTotal, totalIncome, totalExpenses);
+    renderAllocationHub();
 }
 
 function renderRecentTransactions(expenses) {
@@ -633,6 +642,171 @@ function populateFreelancersSelect() {
         state.freelancers.map(f => `<option value="${f.id}">${escapeHTML(f.name)} (${escapeHTML(f.role)})</option>`).join('');
 }
 
+// =========================================================
+// FLOWIX SMART PROFIT & INCOME ALLOCATION ADVISOR
+// =========================================================
+
+function setAllocationStrategy(strategy) {
+    state.allocationState.strategy = strategy;
+    const customControls = document.getElementById('distrib-custom-controls');
+
+    if (strategy === 'growth') {
+        state.allocationState.savingsPct = 15;
+        state.allocationState.adsPct = 20;
+        state.allocationState.opsPct = 15;
+        state.allocationState.partnersPct = 50;
+        if (customControls) customControls.style.display = 'none';
+    } else if (strategy === 'profit') {
+        state.allocationState.savingsPct = 20;
+        state.allocationState.adsPct = 10;
+        state.allocationState.opsPct = 10;
+        state.allocationState.partnersPct = 60;
+        if (customControls) customControls.style.display = 'none';
+    } else if (strategy === 'scale') {
+        state.allocationState.savingsPct = 10;
+        state.allocationState.adsPct = 35;
+        state.allocationState.opsPct = 15;
+        state.allocationState.partnersPct = 40;
+        if (customControls) customControls.style.display = 'none';
+    } else if (strategy === 'custom') {
+        if (customControls) customControls.style.display = 'grid';
+        handleCustomSliderChange();
+        return;
+    }
+
+    document.querySelectorAll('.distrib-chip').forEach(btn => {
+        btn.classList.toggle('active', btn.getAttribute('data-strategy') === strategy);
+    });
+
+    renderAllocationHub();
+}
+
+function handleCustomSliderChange() {
+    const sReserve = parseInt(document.getElementById('slider-custom-reserve')?.value) || 0;
+    const sAds = parseInt(document.getElementById('slider-custom-ads')?.value) || 0;
+    const sOps = parseInt(document.getElementById('slider-custom-ops')?.value) || 0;
+
+    let partners = Math.max(0, 100 - (sReserve + sAds + sOps));
+
+    state.allocationState.savingsPct = sReserve;
+    state.allocationState.adsPct = sAds;
+    state.allocationState.opsPct = sOps;
+    state.allocationState.partnersPct = partners;
+
+    const lblRes = document.getElementById('lbl-custom-reserve');
+    const lblAds = document.getElementById('lbl-custom-ads');
+    const lblOps = document.getElementById('lbl-custom-ops');
+
+    if (lblRes) lblRes.textContent = `${sReserve}%`;
+    if (lblAds) lblAds.textContent = `${sAds}%`;
+    if (lblOps) lblOps.textContent = `${sOps}%`;
+
+    document.querySelectorAll('.distrib-chip').forEach(btn => {
+        btn.classList.toggle('active', btn.getAttribute('data-strategy') === 'custom');
+    });
+
+    renderAllocationHub();
+}
+
+function renderAllocationHub() {
+    const filteredExpenses = filterByPeriod(state.expenses);
+    const filteredIncome = filterByPeriod(state.income);
+
+    const totalIncome = filteredIncome.reduce((sum, item) => sum + Number(item.amount), 0);
+    const totalExpenses = filteredExpenses.reduce((sum, item) => sum + Number(item.amount), 0);
+    const netProfit = totalIncome - totalExpenses;
+    const marginRate = totalIncome > 0 ? ((netProfit / totalIncome) * 100) : 0;
+
+    const baseAmount = totalIncome > 0 ? totalIncome : (netProfit > 0 ? netProfit : 0);
+
+    const { savingsPct, adsPct, opsPct, partnersPct } = state.allocationState;
+    const francoPct = (partnersPct / 2).toFixed(1);
+    const agustinPct = (partnersPct / 2).toFixed(1);
+
+    const savingsVal = (baseAmount * (savingsPct / 100));
+    const adsVal = (baseAmount * (adsPct / 100));
+    const opsVal = (baseAmount * (opsPct / 100));
+    const partnersVal = (baseAmount * (partnersPct / 100));
+    const francoVal = partnersVal / 2;
+    const agustinVal = partnersVal / 2;
+
+    const rateBlue = state.exchangeRates.blue.venta || 1560;
+
+    // Update Stacked Bar Widths
+    const barRes = document.getElementById('distrib-bar-reserve');
+    const barAds = document.getElementById('distrib-bar-ads');
+    const barOps = document.getElementById('distrib-bar-ops');
+    const barPart = document.getElementById('distrib-bar-partners');
+
+    if (barRes) barRes.style.width = `${savingsPct}%`;
+    if (barAds) barAds.style.width = `${adsPct}%`;
+    if (barOps) barOps.style.width = `${opsPct}%`;
+    if (barPart) barPart.style.width = `${partnersPct}%`;
+
+    // 1. Reserva / Ahorro
+    const pctRes = document.getElementById('distrib-pct-reserve');
+    const valRes = document.getElementById('distrib-val-reserve');
+    const arsRes = document.getElementById('distrib-ars-reserve');
+    if (pctRes) pctRes.textContent = `${savingsPct}%`;
+    if (valRes) valRes.textContent = `$${formatNumber(savingsVal)} USD`;
+    if (arsRes) arsRes.textContent = `≈ $${formatNumber(savingsVal * rateBlue)} ARS`;
+
+    // 2. Publicidad / Ads
+    const pctAds = document.getElementById('distrib-pct-ads');
+    const valAds = document.getElementById('distrib-val-ads');
+    const arsAds = document.getElementById('distrib-ars-ads');
+    const dailyAds = document.getElementById('distrib-daily-ads');
+    if (pctAds) pctAds.textContent = `${adsPct}%`;
+    if (valAds) valAds.textContent = `$${formatNumber(adsVal)} USD`;
+    if (arsAds) arsAds.textContent = `≈ $${formatNumber(adsVal * rateBlue)} ARS`;
+    if (dailyAds) dailyAds.textContent = `~$${(adsVal / 30).toFixed(2)} USD/día en Meta & Google Ads`;
+
+    // 3. Franco
+    const pctFranco = document.getElementById('distrib-pct-franco');
+    const valFranco = document.getElementById('distrib-val-franco');
+    const arsFranco = document.getElementById('distrib-ars-franco');
+    if (pctFranco) pctFranco.textContent = `${francoPct}%`;
+    if (valFranco) valFranco.textContent = `$${formatNumber(francoVal)} USD`;
+    if (arsFranco) arsFranco.textContent = `≈ $${formatNumber(francoVal * rateBlue)} ARS`;
+
+    // 4. Agustín
+    const pctAgustin = document.getElementById('distrib-pct-agustin');
+    const valAgustin = document.getElementById('distrib-val-agustin');
+    const arsAgustin = document.getElementById('distrib-ars-agustin');
+    if (pctAgustin) pctAgustin.textContent = `${agustinPct}%`;
+    if (valAgustin) valAgustin.textContent = `$${formatNumber(agustinVal)} USD`;
+    if (arsAgustin) arsAgustin.textContent = `≈ $${formatNumber(agustinVal * rateBlue)} ARS`;
+
+    // Dynamic Financial Advice
+    generateSmartFinancialAdvice(totalIncome, netProfit, marginRate, savingsVal, adsVal, francoVal);
+}
+
+function generateSmartFinancialAdvice(income, netProfit, marginRate, savingsAmt, adsAmt, eachPartnerAmt) {
+    const adviceEl = document.getElementById('smart-advice-msg');
+    if (!adviceEl) return;
+
+    if (income <= 0) {
+        adviceEl.innerHTML = `📌 <strong>Sin facturación registrada en este periodo:</strong> Te recomendamos registrar los cobros de tus clientes para activar el cálculo dinámico de presupuesto para Ads ($), Fondo de Reserva Flowix y utilidades líquidas para Franco y Agustín.`;
+        return;
+    }
+
+    let tips = [];
+
+    if (marginRate >= 65) {
+        tips.push(`🔥 <strong>Excelente margen operativo (${marginRate.toFixed(1)}%):</strong> La agencia tiene una rentabilidad sólida y saludable.`);
+    } else if (marginRate < 40 && marginRate > 0) {
+        tips.push(`⚠️ <strong>Margen ajustado (${marginRate.toFixed(1)}%):</strong> Recomendamos revisar gastos en SaaS y colaboradores para maximizar el remanente de los socios.`);
+    }
+
+    if (adsAmt > 0) {
+        tips.push(`📢 Con un presupuesto de <strong>$${formatNumber(adsAmt)} USD</strong> en pauta (~$${(adsAmt / 30).toFixed(2)} USD/día), Flowix puede captar entre <strong>${Math.max(1, Math.round(adsAmt / 25))} a ${Math.max(2, Math.round(adsAmt / 12))} clientes potenciales calificados</strong> este mes.`);
+    }
+
+    tips.push(`🏦 Apartando <strong>$${formatNumber(savingsAmt)} USD</strong> para el Fondo de Reserva Flowix, quedan libres <strong>$${formatNumber(eachPartnerAmt)} USD para Franco</strong> y <strong>$${formatNumber(eachPartnerAmt)} USD para Agustín</strong> (reparto equitativo 50/50).`);
+
+    adviceEl.innerHTML = tips.join('<br>');
+}
+
 // ASISTENTE DE CIERRE DE MES & FONDO DE RESERVA
 function openSettlementModal() {
     const filteredExpenses = filterByPeriod(state.expenses);
@@ -646,8 +820,23 @@ function openSettlementModal() {
     document.getElementById('set-expenses').textContent = formatUSD(totalExpenses);
     document.getElementById('set-net-profit').textContent = formatUSD(netProfit);
 
-    updateSettlementPreview();
+    setSettlementStrategy(state.allocationState.settlementStrategy || 'growth');
     openModal('modal-settlement');
+    lucide.createIcons();
+}
+
+function setSettlementStrategy(strat) {
+    state.allocationState.settlementStrategy = strat;
+
+    const btnGrowth = document.getElementById('btn-strat-growth');
+    const btnProfit = document.getElementById('btn-strat-profit');
+    const btnScale = document.getElementById('btn-strat-scale');
+
+    if (btnGrowth) btnGrowth.classList.toggle('active', strat === 'growth');
+    if (btnProfit) btnProfit.classList.toggle('active', strat === 'profit');
+    if (btnScale) btnScale.classList.toggle('active', strat === 'scale');
+
+    updateSettlementPreview();
 }
 
 function updateSettlementPreview() {
@@ -657,14 +846,46 @@ function updateSettlementPreview() {
     const totalExpenses = filteredExpenses.reduce((sum, item) => sum + Number(item.amount), 0);
     const netProfit = Math.max(0, totalIncome - totalExpenses);
 
-    const reservePct = parseFloat(document.getElementById('set-reserve-pct').value) || 0;
-    const reserveAmount = (netProfit * (reservePct / 100));
-    const distributable = Math.max(0, netProfit - reserveAmount);
+    const strat = state.allocationState.settlementStrategy || 'growth';
+    let resPct = 15;
+    let adsPct = 20;
+
+    if (strat === 'profit') {
+        resPct = 20;
+        adsPct = 10;
+    } else if (strat === 'scale') {
+        resPct = 10;
+        adsPct = 35;
+    }
+
+    const resAmt = (netProfit * (resPct / 100));
+    const adsAmt = (netProfit * (adsPct / 100));
+    const distributable = Math.max(0, netProfit - resAmt);
     const splitEach = distributable / 2;
 
-    document.getElementById('set-reserve-amount').textContent = `Fondo Reserva Flowix: ${formatUSD(reserveAmount)}`;
-    document.getElementById('set-split-franco').textContent = formatUSD(splitEach);
-    document.getElementById('set-split-agustin').textContent = formatUSD(splitEach);
+    const rateBlue = state.exchangeRates.blue.venta || 1560;
+
+    const resLbl = document.getElementById('set-reserve-pct-lbl');
+    const resAmountEl = document.getElementById('set-reserve-amount');
+    const adsLbl = document.getElementById('set-ads-pct-lbl');
+    const adsAmountEl = document.getElementById('set-ads-amount');
+    const distEl = document.getElementById('set-distributable-amount');
+
+    const splitFranco = document.getElementById('set-split-franco');
+    const splitFrancoArs = document.getElementById('set-split-franco-ars');
+    const splitAgustin = document.getElementById('set-split-agustin');
+    const splitAgustinArs = document.getElementById('set-split-agustin-ars');
+
+    if (resLbl) resLbl.textContent = `${resPct}%`;
+    if (resAmountEl) resAmountEl.textContent = formatUSD(resAmt);
+    if (adsLbl) adsLbl.textContent = `${adsPct}%`;
+    if (adsAmountEl) adsAmountEl.textContent = formatUSD(adsAmt);
+    if (distEl) distEl.textContent = formatUSD(distributable);
+
+    if (splitFranco) splitFranco.textContent = formatUSD(splitEach);
+    if (splitFrancoArs) splitFrancoArs.textContent = `≈ $${formatNumber(splitEach * rateBlue)} ARS`;
+    if (splitAgustin) splitAgustin.textContent = formatUSD(splitEach);
+    if (splitAgustinArs) splitAgustinArs.textContent = `≈ $${formatNumber(splitEach * rateBlue)} ARS`;
 }
 
 async function executeAutoSettlement() {
@@ -674,8 +895,12 @@ async function executeAutoSettlement() {
     const totalExpenses = filteredExpenses.reduce((sum, item) => sum + Number(item.amount), 0);
     const netProfit = Math.max(0, totalIncome - totalExpenses);
 
-    const reservePct = parseFloat(document.getElementById('set-reserve-pct').value) || 0;
-    const reserveAmount = (netProfit * (reservePct / 100));
+    const strat = state.allocationState.settlementStrategy || 'growth';
+    let resPct = 15;
+    if (strat === 'profit') resPct = 20;
+    else if (strat === 'scale') resPct = 10;
+
+    const reserveAmount = (netProfit * (resPct / 100));
     const distributable = Math.max(0, netProfit - reserveAmount);
     const splitEach = Math.round((distributable / 2) * 100) / 100;
 
@@ -692,13 +917,13 @@ async function executeAutoSettlement() {
             partner_name: 'Franco',
             amount: splitEach,
             date: today,
-            notes: `Cierre 50/50 (${periodName}) • Reserva ${reservePct}% ($${formatNumber(reserveAmount)})`
+            notes: `Cierre 50/50 (${periodName}) • Reserva ${resPct}% ($${formatNumber(reserveAmount)}) [${strat.toUpperCase()}]`
         },
         {
             partner_name: 'Agustin',
             amount: splitEach,
             date: today,
-            notes: `Cierre 50/50 (${periodName}) • Reserva ${reservePct}% ($${formatNumber(reserveAmount)})`
+            notes: `Cierre 50/50 (${periodName}) • Reserva ${resPct}% ($${formatNumber(reserveAmount)}) [${strat.toUpperCase()}]`
         }
     ];
 
@@ -707,7 +932,7 @@ async function executeAutoSettlement() {
         if (error) throw error;
 
         closeModal('modal-settlement');
-        showToast(`¡Cierre de mes ejecutado! Se distribuyeron $${formatNumber(splitEach)} a cada socio`, 'success');
+        showToast(`¡Cierre de mes ejecutado! Se registraron $${formatNumber(splitEach)} USD para Franco y $${formatNumber(splitEach)} USD para Agustín`, 'success');
         await refreshAllData();
     } catch (err) {
         showToast('Error al ejecutar distribución: ' + err.message, 'error');
@@ -1729,3 +1954,8 @@ window.confirmInlineArsConversion = confirmInlineArsConversion;
 
 window.toggleIncomeStatus = toggleIncomeStatus;
 window.toggleExpenseStatus = toggleExpenseStatus;
+
+window.setAllocationStrategy = setAllocationStrategy;
+window.handleCustomSliderChange = handleCustomSliderChange;
+window.renderAllocationHub = renderAllocationHub;
+window.setSettlementStrategy = setSettlementStrategy;

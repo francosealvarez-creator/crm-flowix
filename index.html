@@ -294,6 +294,128 @@
                 </div>
             </div>
 
+            <!-- Flowix Smart Distribution & Profit Allocation Hub -->
+            <div class="distribution-card">
+                <div class="distrib-header">
+                    <div class="distrib-title-wrap">
+                        <div class="distrib-icon-box">
+                            <i data-lucide="pie-chart"></i>
+                        </div>
+                        <div>
+                            <div class="distrib-title">Recomendador & Distribución Inteligente de Ingresos</div>
+                            <div class="distrib-sub">Modelo financiero para maximizar crecimiento, reservas y retiros de socios</div>
+                        </div>
+                    </div>
+                    <div class="distrib-actions">
+                        <button type="button" class="btn-settle-link" onclick="openSettlementModal()">
+                            <i data-lucide="zap"></i> Cierre de Mes 50/50
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Strategy Preset Selector Chips -->
+                <div class="distrib-strategy-chips">
+                    <button type="button" class="distrib-chip active" data-strategy="growth" onclick="setAllocationStrategy('growth')">
+                        <i data-lucide="rocket"></i>
+                        <span>Crecimiento Equilibrado (15% Ahorro / 20% Ads / 15% Ops / 50% Socios)</span>
+                    </button>
+                    <button type="button" class="distrib-chip" data-strategy="profit" onclick="setAllocationStrategy('profit')">
+                        <i data-lucide="shield-check"></i>
+                        <span>Conservador / Rentabilidad (20% Ahorro / 10% Ads / 70% Socios)</span>
+                    </button>
+                    <button type="button" class="distrib-chip" data-strategy="scale" onclick="setAllocationStrategy('scale')">
+                        <i data-lucide="trending-up"></i>
+                        <span>Escalado Agresivo (10% Ahorro / 35% Ads / 55% Socios)</span>
+                    </button>
+                    <button type="button" class="distrib-chip" data-strategy="custom" onclick="setAllocationStrategy('custom')">
+                        <i data-lucide="sliders"></i>
+                        <span>Personalizado</span>
+                    </button>
+                </div>
+
+                <!-- Custom Sliders (Only visible if 'custom' is active) -->
+                <div class="distrib-custom-sliders" id="distrib-custom-controls" style="display: none;">
+                    <div class="distrib-slider-row">
+                        <label>🏦 Fondo Ahorro / Reserva: <strong id="lbl-custom-reserve" class="text-blue">15%</strong></label>
+                        <input type="range" id="slider-custom-reserve" min="0" max="50" step="5" value="15" oninput="handleCustomSliderChange()">
+                    </div>
+                    <div class="distrib-slider-row">
+                        <label>📢 Pauta / Publicidad (Ads): <strong id="lbl-custom-ads" class="text-amber">20%</strong></label>
+                        <input type="range" id="slider-custom-ads" min="0" max="60" step="5" value="20" oninput="handleCustomSliderChange()">
+                    </div>
+                    <div class="distrib-slider-row">
+                        <label>⚙️ Operativo & SaaS Buffer: <strong id="lbl-custom-ops" class="text-purple">15%</strong></label>
+                        <input type="range" id="slider-custom-ops" min="0" max="40" step="5" value="15" oninput="handleCustomSliderChange()">
+                    </div>
+                </div>
+
+                <!-- Stacked Color Bar -->
+                <div class="distrib-stacked-track">
+                    <div class="distrib-bar-seg seg-reserve" id="distrib-bar-reserve" style="width: 15%;" title="Reserva"></div>
+                    <div class="distrib-bar-seg seg-ads" id="distrib-bar-ads" style="width: 20%;" title="Publicidad"></div>
+                    <div class="distrib-bar-seg seg-ops" id="distrib-bar-ops" style="width: 15%;" title="Operativo"></div>
+                    <div class="distrib-bar-seg seg-partners" id="distrib-bar-partners" style="width: 50%;" title="Socios"></div>
+                </div>
+
+                <!-- 4 Allocation Stat Cards -->
+                <div class="distrib-cards-grid">
+                    <!-- 1. Reserva / Ahorro -->
+                    <div class="distrib-kpi-card card-reserve">
+                        <div class="distrib-kpi-top">
+                            <span class="distrib-kpi-lbl">🏦 Fondo Ahorro / Reserva</span>
+                            <span class="distrib-kpi-pct" id="distrib-pct-reserve">15%</span>
+                        </div>
+                        <div class="distrib-kpi-val text-blue" id="distrib-val-reserve">$0.00 USD</div>
+                        <div class="distrib-kpi-ars" id="distrib-ars-reserve">≈ $0 ARS</div>
+                        <div class="distrib-kpi-desc">Fondo de emergencia & tesorería Flowix</div>
+                    </div>
+
+                    <!-- 2. Publicidad / Ads -->
+                    <div class="distrib-kpi-card card-ads">
+                        <div class="distrib-kpi-top">
+                            <span class="distrib-kpi-lbl">📢 Pauta Publicitaria (Ads)</span>
+                            <span class="distrib-kpi-pct" id="distrib-pct-ads">20%</span>
+                        </div>
+                        <div class="distrib-kpi-val text-amber" id="distrib-val-ads">$0.00 USD</div>
+                        <div class="distrib-kpi-ars" id="distrib-ars-ads">≈ $0 ARS</div>
+                        <div class="distrib-kpi-desc" id="distrib-daily-ads">~$0.00 USD/día en Meta/Google</div>
+                    </div>
+
+                    <!-- 3. Franco -->
+                    <div class="distrib-kpi-card card-franco">
+                        <div class="distrib-kpi-top">
+                            <span class="distrib-kpi-lbl">👤 Retiro Franco (50%)</span>
+                            <span class="distrib-kpi-pct" id="distrib-pct-franco">25%</span>
+                        </div>
+                        <div class="distrib-kpi-val text-green" id="distrib-val-franco">$0.00 USD</div>
+                        <div class="distrib-kpi-ars" id="distrib-ars-franco">≈ $0 ARS</div>
+                        <div class="distrib-kpi-desc">Utilidad neta disponible</div>
+                    </div>
+
+                    <!-- 4. Agustín -->
+                    <div class="distrib-kpi-card card-agustin">
+                        <div class="distrib-kpi-top">
+                            <span class="distrib-kpi-lbl">👤 Retiro Agustín (50%)</span>
+                            <span class="distrib-kpi-pct" id="distrib-pct-agustin">25%</span>
+                        </div>
+                        <div class="distrib-kpi-val text-green" id="distrib-val-agustin">$0.00 USD</div>
+                        <div class="distrib-kpi-ars" id="distrib-ars-agustin">≈ $0 ARS</div>
+                        <div class="distrib-kpi-desc">Utilidad neta disponible</div>
+                    </div>
+                </div>
+
+                <!-- AI / Smart Advice Box -->
+                <div class="smart-advice-box">
+                    <div class="smart-advice-hdr">
+                        <i data-lucide="sparkles"></i>
+                        <span>Recomendación Financiera para este Mes</span>
+                    </div>
+                    <div class="smart-advice-text" id="smart-advice-msg">
+                        Calculando recomendaciones personalizadas según tus cobros del periodo...
+                    </div>
+                </div>
+            </div>
+
             <!-- Inset Grouped Recent Movements -->
             <div class="section-header" style="margin-top: 28px;">
                 <div>
@@ -721,21 +843,21 @@
 
     <!-- MODAL: ASISTENTE DE CIERRE DE MES & FONDO DE RESERVA -->
     <div class="modal-overlay" id="modal-settlement">
-        <div class="modal-dialog" style="max-width: 520px;">
+        <div class="modal-dialog" style="max-width: 560px;">
             <div class="modal-hdr">
                 <h3>⚡ Asistente de Cierre de Mes (50 / 50)</h3>
                 <button class="modal-x" onclick="closeModal('modal-settlement')">&times;</button>
             </div>
             <div class="settle-box">
-                <p class="settle-desc">Calcula la ganancia neta, aparta el fondo de reserva para Flowix y distribuye el remanente equitativamente entre los dos socios con un clic.</p>
+                <p class="settle-desc">Calcula la ganancia neta del periodo, aparta el fondo de reserva de Flowix, el presupuesto de publicidad (Ads) y distribuye el remanente equitativamente entre Franco y Agustín con un solo clic.</p>
                 
                 <div class="settle-stats">
                     <div class="settle-stat-row">
-                        <span>Facturación del Periodo:</span>
+                        <span>Facturación Cobrada:</span>
                         <strong class="text-green" id="set-income">$0.00</strong>
                     </div>
                     <div class="settle-stat-row">
-                        <span>Gastos Operativos Totales:</span>
+                        <span>Gastos Operativos:</span>
                         <strong class="text-red" id="set-expenses">$0.00</strong>
                     </div>
                     <div class="settle-stat-row total-highlight">
@@ -745,28 +867,46 @@
                 </div>
 
                 <div class="input-grp" style="margin-top: 14px;">
-                    <label>Porcentaje para Fondo de Reserva de Flowix (%):</label>
-                    <div style="display: flex; gap: 10px; align-items: center;">
-                        <input type="number" id="set-reserve-pct" value="20" min="0" max="100" style="width: 90px;" oninput="updateSettlementPreview()">
-                        <span id="set-reserve-amount" class="text-secondary" style="font-size: 14px; font-weight: 600;">Reserva: $0.00</span>
+                    <label>Estrategia de Cierre Aplicada:</label>
+                    <div class="settle-strategy-buttons">
+                        <button type="button" class="btn-settle-strat active" id="btn-strat-growth" onclick="setSettlementStrategy('growth')">🚀 Crecimiento (15% Reserva / 20% Ads)</button>
+                        <button type="button" class="btn-settle-strat" id="btn-strat-profit" onclick="setSettlementStrategy('profit')">🛡️ Conservador (20% Reserva / 10% Ads)</button>
+                        <button type="button" class="btn-settle-strat" id="btn-strat-scale" onclick="setSettlementStrategy('scale')">⚡ Escalado (10% Reserva / 35% Ads)</button>
                     </div>
                 </div>
 
-                <div class="settle-split-preview">
+                <div class="settle-alloc-breakdown" style="margin-top: 14px; background: var(--surface-secondary); padding: 12px; border-radius: var(--radius-md); border: 1px solid var(--border);">
+                    <div style="display: flex; justify-content: space-between; font-size: 12.5px; margin-bottom: 6px;">
+                        <span>🏦 Fondo Reserva Flowix (<span id="set-reserve-pct-lbl">15%</span>):</span>
+                        <strong class="text-blue" id="set-reserve-amount">$0.00</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 12.5px; margin-bottom: 6px;">
+                        <span>📢 Presupuesto Ads sugerido (<span id="set-ads-pct-lbl">20%</span>):</span>
+                        <strong class="text-amber" id="set-ads-amount">$0.00</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: 700; border-top: 1px solid var(--border); padding-top: 6px;">
+                        <span>👥 Monto Total para Socios:</span>
+                        <strong class="text-green" id="set-distributable-amount">$0.00</strong>
+                    </div>
+                </div>
+
+                <div class="settle-split-preview" style="margin-top: 14px;">
                     <div class="split-card">
                         <span>Franco (50%)</span>
                         <strong class="text-green" id="set-split-franco">$0.00</strong>
+                        <small class="text-secondary" id="set-split-franco-ars" style="font-size: 11px;">≈ $0 ARS</small>
                     </div>
                     <div class="split-card">
                         <span>Agustín (50%)</span>
                         <strong class="text-green" id="set-split-agustin">$0.00</strong>
+                        <small class="text-secondary" id="set-split-agustin-ars" style="font-size: 11px;">≈ $0 ARS</small>
                     </div>
                 </div>
 
                 <div class="modal-btn-row" style="margin-top: 20px;">
                     <button type="button" class="btn-modal-cancel" onclick="closeModal('modal-settlement')">Cancelar</button>
                     <button type="button" class="btn-flowix-cta" onclick="executeAutoSettlement()">
-                        <i data-lucide="check"></i> Ejecutar Distribución
+                        <i data-lucide="check"></i> Registrar Retiros para Franco y Agustín
                     </button>
                 </div>
             </div>
