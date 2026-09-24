@@ -136,11 +136,24 @@ async function refreshAllData() {
         const expBadge = document.getElementById('expenses-count');
         const freeBadge = document.getElementById('freelancers-count');
         const subsBadge = document.getElementById('subs-count');
+        const incBadge = document.getElementById('income-count');
         
         const recurringList = state.expenses.filter(e => e.is_recurring);
         if (expBadge) expBadge.textContent = state.expenses.length;
         if (freeBadge) freeBadge.textContent = state.freelancers.length;
         if (subsBadge) subsBadge.textContent = recurringList.length;
+        
+        if (incBadge) {
+            const pendingIncomeCount = state.income.filter(i => i.status === 'pendiente').length;
+            incBadge.textContent = state.income.length;
+            if (pendingIncomeCount > 0) {
+                incBadge.classList.add('badge-has-pending');
+                incBadge.title = `${pendingIncomeCount} facturas pendientes de cobro`;
+            } else {
+                incBadge.classList.remove('badge-has-pending');
+                incBadge.title = 'Total de facturaciones';
+            }
+        }
 
         lucide.createIcons();
     } catch (err) {
@@ -171,6 +184,10 @@ function renderDashboard() {
     const filteredWithdrawals = filterByPeriod(state.withdrawals);
 
     const totalIncome = filteredIncome.reduce((sum, item) => sum + Number(item.amount), 0);
+    const collectedIncome = filteredIncome.filter(i => i.status === 'cobrado' || !i.status).reduce((sum, item) => sum + Number(item.amount), 0);
+    const pendingIncome = filteredIncome.filter(i => i.status === 'pendiente').reduce((sum, item) => sum + Number(item.amount), 0);
+    const pendingIncomeCount = filteredIncome.filter(i => i.status === 'pendiente').length;
+
     const totalExpenses = filteredExpenses.reduce((sum, item) => sum + Number(item.amount), 0);
     const pendingExpenses = filteredExpenses.filter(e => e.status === 'pendiente').reduce((sum, item) => sum + Number(item.amount), 0);
     const netProfit = totalIncome - totalExpenses;
@@ -178,7 +195,11 @@ function renderDashboard() {
     const totalWithdrawals = filteredWithdrawals.reduce((sum, item) => sum + Number(item.amount), 0);
 
     document.getElementById('dash-income').textContent = formatUSD(totalIncome);
-    document.getElementById('dash-income-count').textContent = `${filteredIncome.length} facturaciones`;
+    if (pendingIncome > 0) {
+        document.getElementById('dash-income-count').innerHTML = `$${formatNumber(collectedIncome)} cobrado <span class="text-amber">• $${formatNumber(pendingIncome)} pendiente (${pendingIncomeCount})</span>`;
+    } else {
+        document.getElementById('dash-income-count').textContent = `${filteredIncome.length} facturaciones (100% cobrado)`;
+    }
     
     document.getElementById('dash-expenses').textContent = formatUSD(totalExpenses);
     document.getElementById('dash-pending-expenses').textContent = `$${formatNumber(pendingExpenses)} pendiente`;
@@ -387,11 +408,16 @@ function renderCharts(infra, ads, free, other, income, expenses) {
     }
 }
 
-// EXPENSES LIST & CRUD
+// EXPENSES & INCOME FILTERS
 function setupFilters() {
     ['expense-search', 'filter-expense-cat', 'filter-expense-partner', 'filter-expense-status'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.addEventListener('input', renderExpensesList);
+    });
+
+    ['income-search', 'filter-income-status', 'filter-income-partner'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('input', renderIncomeList);
     });
 }
 
@@ -420,6 +446,7 @@ function renderExpensesList() {
     container.innerHTML = filtered.map(exp => {
         const freelancer = state.freelancers.find(f => f.id === exp.freelancer_id);
         const subInfo = freelancer ? `Colaborador: ${escapeHTML(freelancer.name)}` : (exp.payment_method || '');
+        const isPending = exp.status === 'pendiente';
         return `
             <div class="row">
                 <div class="row-icon-wrap icon-${getCatClass(exp.category)}">
@@ -428,6 +455,7 @@ function renderExpensesList() {
                 <div class="row-main">
                     <div class="row-title">
                         ${escapeHTML(exp.title)}
+                        <span class="badge-status ${isPending ? 'badge-pending' : 'badge-paid'}">${isPending ? 'Pendiente' : 'Pagado'}</span>
                         ${exp.is_recurring ? `<span class="badge-recurring">SaaS</span>` : ''}
                     </div>
                     <div class="row-sub">
@@ -440,9 +468,13 @@ function renderExpensesList() {
                     </div>
                 </div>
                 <div class="row-right">
-                    <div class="row-amount text-red">-$${formatNumber(exp.amount)}</div>
+                    <div class="row-amount ${isPending ? 'text-amber' : 'text-red'}">-$${formatNumber(exp.amount)}</div>
                     ${exp.receipt_url ? `<button class="btn-icon btn-receipt-view" onclick="viewReceipt('${exp.id}')" title="Ver Comprobante"><i data-lucide="paperclip"></i></button>` : ''}
                     <div class="row-actions">
+                        ${isPending ? 
+                            `<button class="btn-icon btn-icon-check" onclick="toggleExpenseStatus('${exp.id}', 'pagado')" title="Marcar como Pagado"><i data-lucide="check"></i></button>` : 
+                            `<button class="btn-icon btn-icon-undo" onclick="toggleExpenseStatus('${exp.id}', 'pendiente')" title="Revertir a Pendiente"><i data-lucide="rotate-ccw"></i></button>`
+                        }
                         <button class="btn-icon" onclick="editExpense('${exp.id}')" title="Editar"><i data-lucide="edit-2"></i></button>
                         <button class="btn-icon btn-icon-del" onclick="deleteExpense('${exp.id}')" title="Eliminar"><i data-lucide="trash-2"></i></button>
                     </div>
@@ -904,19 +936,58 @@ async function deleteWithdrawal(id) {
 
 // INCOME CRUD
 function renderIncomeList() {
+    const search = (document.getElementById('income-search')?.value || '').toLowerCase();
+    const status = document.getElementById('filter-income-status')?.value || 'all';
+    const partner = document.getElementById('filter-income-partner')?.value || 'all';
+
+    const periodIncome = filterByPeriod(state.income);
+    const totalCollected = periodIncome.filter(i => i.status === 'cobrado' || !i.status).reduce((s, i) => s + Number(i.amount), 0);
+    const totalPending = periodIncome.filter(i => i.status === 'pendiente').reduce((s, i) => s + Number(i.amount), 0);
+    const pendingCount = periodIncome.filter(i => i.status === 'pendiente').length;
+    const totalGross = totalCollected + totalPending;
+
+    const elCol = document.getElementById('inc-summary-collected');
+    const elColCount = document.getElementById('inc-summary-collected-count');
+    const elPend = document.getElementById('inc-summary-pending');
+    const elPendCount = document.getElementById('inc-summary-pending-count');
+    const elGross = document.getElementById('inc-summary-gross');
+    const elGrossCount = document.getElementById('inc-summary-gross-count');
+
+    if (elCol) elCol.textContent = formatUSD(totalCollected);
+    if (elColCount) elColCount.textContent = `${periodIncome.filter(i => i.status === 'cobrado' || !i.status).length} cobros realizados`;
+    if (elPend) elPend.textContent = formatUSD(totalPending);
+    if (elPendCount) elPendCount.textContent = `${pendingCount} facturas pendientes`;
+    if (elGross) elGross.textContent = formatUSD(totalGross);
+    if (elGrossCount) elGrossCount.textContent = `${periodIncome.length} facturaciones en total`;
+
     const container = document.getElementById('income-table-body');
-    if (state.income.length === 0) {
-        container.innerHTML = `<div class="empty-state">No hay ingresos registrados aún.</div>`;
+    if (!container) return;
+
+    const filtered = state.income.filter(item => {
+        const matchSearch = item.client_name.toLowerCase().includes(search) ||
+                            (item.description && item.description.toLowerCase().includes(search));
+        const matchStatus = status === 'all' || (item.status || 'cobrado') === status;
+        const matchPartner = partner === 'all' || item.created_by === partner;
+        return matchSearch && matchStatus && matchPartner;
+    });
+
+    if (filtered.length === 0) {
+        container.innerHTML = `<div class="empty-state">No se encontraron cobros registrados con los filtros aplicados.</div>`;
         return;
     }
 
-    container.innerHTML = state.income.map(inc => `
+    container.innerHTML = filtered.map(inc => {
+        const isPending = inc.status === 'pendiente';
+        return `
         <div class="row">
             <div class="row-icon-wrap icon-inc">
-                <i data-lucide="dollar-sign"></i>
+                <i data-lucide="${isPending ? 'clock' : 'dollar-sign'}"></i>
             </div>
             <div class="row-main">
-                <div class="row-title">${escapeHTML(inc.client_name)}</div>
+                <div class="row-title">
+                    ${escapeHTML(inc.client_name)}
+                    <span class="badge-status ${isPending ? 'badge-pending' : 'badge-paid'}">${isPending ? 'Pendiente' : 'Cobrado'}</span>
+                </div>
                 <div class="row-sub">
                     <span>${inc.date}</span>
                     <span>•</span>
@@ -925,16 +996,51 @@ function renderIncomeList() {
                 </div>
             </div>
             <div class="row-right">
-                <div class="row-amount text-green">+$${formatNumber(inc.amount)}</div>
+                <div class="row-amount ${isPending ? 'text-amber' : 'text-green'}">+$${formatNumber(inc.amount)}</div>
                 <div class="row-actions">
+                    ${isPending ? 
+                        `<button class="btn-icon btn-icon-check" onclick="toggleIncomeStatus('${inc.id}', 'cobrado')" title="Marcar como Cobrado"><i data-lucide="check-circle-2"></i></button>` : 
+                        `<button class="btn-icon btn-icon-undo" onclick="toggleIncomeStatus('${inc.id}', 'pendiente')" title="Revertir a Pendiente"><i data-lucide="rotate-ccw"></i></button>`
+                    }
                     <button class="btn-icon" onclick="editIncome('${inc.id}')" title="Editar"><i data-lucide="edit-2"></i></button>
                     <button class="btn-icon btn-icon-del" onclick="deleteIncome('${inc.id}')" title="Eliminar"><i data-lucide="trash-2"></i></button>
                 </div>
             </div>
         </div>
-    `).join('');
+        `;
+    }).join('');
 
     lucide.createIcons();
+}
+
+async function toggleIncomeStatus(id, newStatus) {
+    try {
+        const inc = state.income.find(i => i.id === id);
+        if (!inc) return;
+
+        const { error } = await supabaseClient.from('income').update({ status: newStatus }).eq('id', id);
+        if (error) throw error;
+
+        showToast(`Facturación de ${escapeHTML(inc.client_name)} marcada como ${newStatus === 'cobrado' ? 'COBRADA' : 'PENDIENTE'}`, 'success');
+        await refreshAllData();
+    } catch (err) {
+        showToast('Error al actualizar estado: ' + err.message, 'error');
+    }
+}
+
+async function toggleExpenseStatus(id, newStatus) {
+    try {
+        const exp = state.expenses.find(e => e.id === id);
+        if (!exp) return;
+
+        const { error } = await supabaseClient.from('expenses').update({ status: newStatus }).eq('id', id);
+        if (error) throw error;
+
+        showToast(`Gasto "${escapeHTML(exp.title)}" marcado como ${newStatus === 'pagado' ? 'PAGADO' : 'PENDIENTE'}`, 'success');
+        await refreshAllData();
+    } catch (err) {
+        showToast('Error al actualizar estado: ' + err.message, 'error');
+    }
 }
 
 function openIncomeModal() {
@@ -1620,3 +1726,6 @@ window.applyConverterToIncome = applyConverterToIncome;
 window.openInlineConverter = openInlineConverter;
 window.updateInlineArsCalculation = updateInlineArsCalculation;
 window.confirmInlineArsConversion = confirmInlineArsConversion;
+
+window.toggleIncomeStatus = toggleIncomeStatus;
+window.toggleExpenseStatus = toggleExpenseStatus;

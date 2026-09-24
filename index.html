@@ -100,6 +100,7 @@
             </button>
             <button class="tab" data-tab="income">
                 <i data-lucide="trending-up"></i> <span>Ingresos</span>
+                <span class="tab-badge" id="income-count">0</span>
             </button>
             <button class="tab" data-tab="reports">
                 <i data-lucide="file-spreadsheet"></i> <span>Reportes</span>
@@ -481,11 +482,66 @@
             <div class="section-header">
                 <div>
                     <div class="section-title">Facturación & Clientes</div>
-                    <div class="section-sub">Ingresos brutos percibidos por la agencia</div>
+                    <div class="section-sub">Control de cobros realizados y cuentas por cobrar</div>
                 </div>
                 <button class="btn-flowix-cta" onclick="openIncomeModal()">
-                    <i data-lucide="plus"></i> Registrar Ingreso
+                    <i data-lucide="plus"></i> Registrar Cobro
                 </button>
+            </div>
+
+            <!-- Income Overview Summary Cards -->
+            <div class="cards-grid" style="grid-template-columns: repeat(3, 1fr); margin-bottom: 20px;">
+                <div class="stat-card">
+                    <div class="stat-label">
+                        <span>Cobrado Efectivo</span>
+                        <i data-lucide="check-circle-2" class="text-green icon-sm"></i>
+                    </div>
+                    <div class="stat-value text-green" id="inc-summary-collected">$0.00</div>
+                    <div class="stat-sub" id="inc-summary-collected-count">0 cobros realizados</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-label">
+                        <span>Pendiente de Cobro</span>
+                        <i data-lucide="clock" class="text-amber icon-sm"></i>
+                    </div>
+                    <div class="stat-value text-amber" id="inc-summary-pending">$0.00</div>
+                    <div class="stat-sub text-amber" id="inc-summary-pending-count">0 facturas pendientes</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-label">
+                        <span>Total Facturado</span>
+                        <i data-lucide="trending-up" class="text-blue icon-sm"></i>
+                    </div>
+                    <div class="stat-value text-blue" id="inc-summary-gross">$0.00</div>
+                    <div class="stat-sub" id="inc-summary-gross-count">Total del periodo</div>
+                </div>
+            </div>
+
+            <!-- Filter Controls for Income -->
+            <div class="filter-controls-card">
+                <div class="search-wrap">
+                    <i data-lucide="search"></i>
+                    <input type="text" id="income-search" placeholder="Buscar por cliente, descripción o notas...">
+                </div>
+                <div class="filters-row">
+                    <select id="filter-income-status">
+                        <option value="all">Todos los Estados</option>
+                        <option value="pendiente">Solo Pendientes de Cobro</option>
+                        <option value="cobrado">Solo Cobrados</option>
+                    </select>
+
+                    <select id="filter-income-partner">
+                        <option value="all">Todos los Socios</option>
+                        <option value="Franco">Franco</option>
+                        <option value="Agustin">Agustín</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="section-header" style="margin-top: 20px; margin-bottom: 12px;">
+                <div class="section-title" style="font-size: 17px;">Listado de Facturación & Cobros</div>
             </div>
 
             <div id="income-table-body" class="inset-list">

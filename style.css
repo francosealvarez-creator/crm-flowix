@@ -1358,6 +1358,63 @@ main {
 .text-amber { color: var(--flowix-amber); }
 .text-purple { color: var(--flowix-purple); }
 
+/* Status Badges & Quick Action Buttons */
+.badge-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+}
+
+.badge-paid, .badge-collected {
+    background: rgba(0, 204, 106, 0.15);
+    color: var(--flowix-green);
+    border: 1px solid rgba(0, 204, 106, 0.25);
+}
+
+.badge-pending {
+    background: rgba(245, 158, 11, 0.15);
+    color: var(--flowix-amber);
+    border: 1px solid rgba(245, 158, 11, 0.25);
+    animation: pendingPulse 2.5s infinite ease-in-out;
+}
+
+@keyframes pendingPulse {
+    0%, 100% { opacity: 0.85; }
+    50% { opacity: 1; box-shadow: 0 0 8px rgba(245, 158, 11, 0.3); }
+}
+
+.btn-icon-check {
+    color: var(--flowix-green);
+    background: rgba(0, 204, 106, 0.1);
+}
+
+.btn-icon-check:hover {
+    background: var(--flowix-green);
+    color: #000;
+}
+
+.btn-icon-undo {
+    color: var(--flowix-amber);
+    background: rgba(245, 158, 11, 0.1);
+}
+
+.btn-icon-undo:hover {
+    background: var(--flowix-amber);
+    color: #000;
+}
+
+.tab-badge.badge-has-pending {
+    background: var(--flowix-amber);
+    color: #000;
+    font-weight: 800;
+}
+
 /* =========================================================
    LIVE CURRENCY QUOTES & FINTECH CONVERTER STYLES
    ========================================================= */
