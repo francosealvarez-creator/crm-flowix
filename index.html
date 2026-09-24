@@ -1,0 +1,1059 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Flowix Agency — Control Financiero</title>
+    
+    <!-- PWA & Mobile Meta Tags -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#050508">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Flowix CRM">
+    <link rel="apple-touch-icon" href="icon-192.png">
+
+    <!-- Fonts: Outfit & Space Grotesk -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+    
+    <!-- Dependencies -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <!-- TOP STICKY HEADER (iOS STYLE) -->
+    <header>
+        <div class="header-container">
+            <div class="brand-box">
+                <div class="brand-icon">
+                    <span class="code-symbol">&lt;/&gt;</span>
+                </div>
+                <div class="brand-title"><span class="brand-white">Flo</span><span class="brand-green">wix</span> <span class="agency-lbl">Agency</span></div>
+            </div>
+
+            <!-- Month Navigator (Centered) -->
+            <div class="header-center">
+                <div class="month-nav">
+                    <button class="month-btn" onclick="shiftPeriod(-1)">‹</button>
+                    <span class="month-display" id="period-display-label">Mes Actual</span>
+                    <button class="month-btn" onclick="shiftPeriod(1)">›</button>
+                </div>
+            </div>
+
+            <div class="header-right">
+                <!-- Live Currency Ticker Badge -->
+                <button type="button" class="rate-badge-btn" id="header-rate-badge" onclick="openConverterModal()" title="Cotizaciones en vivo & Conversor USD / ARS / Cripto">
+                    <span class="rate-dot"></span>
+                    <span class="rate-ticker-txt" id="header-rate-txt">USD Blue: ...</span>
+                </button>
+
+                <!-- Live Supabase Status -->
+                <div class="cloud-badge" onclick="refreshAllData()" title="Sincronizar datos">
+                    <span class="cloud-dot"></span>
+                    <span>Live Sync</span>
+                </div>
+
+                <!-- Executive PDF Button -->
+                <button class="btn-pdf-download" onclick="generateExecutivePDF()" title="Descargar Reporte PDF">
+                    <i data-lucide="file-text"></i> <span>PDF</span>
+                </button>
+
+                <!-- Primary Action Buttons -->
+                <button class="btn-flowix-cta" onclick="openExpenseModal()">
+                    <i data-lucide="plus"></i> Gasto
+                </button>
+                <button class="btn-flowix-income" onclick="openIncomeModal()">
+                    <i data-lucide="arrow-up-right"></i> Ingreso
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- NAVIGATION (SEGMENTED PILL BAR) -->
+    <nav>
+        <div class="nav-container">
+            <button class="tab active" data-tab="dashboard">
+                <i data-lucide="layout-grid"></i> <span>Dashboard</span>
+            </button>
+            <button class="tab" data-tab="expenses">
+                <i data-lucide="receipt"></i> <span>Gastos</span>
+                <span class="tab-badge" id="expenses-count">0</span>
+            </button>
+            <button class="tab" data-tab="subscriptions">
+                <i data-lucide="refresh-cw"></i> <span>Suscripciones</span>
+                <span class="tab-badge" id="subs-count">0</span>
+            </button>
+            <button class="tab" data-tab="freelancers">
+                <i data-lucide="users"></i> <span>Freelancers</span>
+                <span class="tab-badge" id="freelancers-count">0</span>
+            </button>
+            <button class="tab" data-tab="partners">
+                <i data-lucide="scale"></i> <span>Retiros</span>
+            </button>
+            <button class="tab" data-tab="income">
+                <i data-lucide="trending-up"></i> <span>Ingresos</span>
+            </button>
+            <button class="tab" data-tab="reports">
+                <i data-lucide="file-spreadsheet"></i> <span>Reportes</span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- MAIN CONTENT -->
+    <main>
+
+        <!-- TAB 1: DASHBOARD -->
+        <section id="tab-dashboard" class="panel active">
+            
+            <!-- Category Quick Shortcuts (Atajos Rápidos) -->
+            <div class="atajos-section">
+                <div class="atajos-hdr">
+                    <span class="atajos-title">Centros de Costo & Carga Rápida</span>
+                    <button class="btn-settle-link" onclick="openSettlementModal()">
+                        <i data-lucide="zap"></i> Cierre de Mes (Reparto 50/50)
+                    </button>
+                </div>
+                <div class="atajos-scroll">
+                    <button class="atajo-chip" onclick="openExpenseModal('infraestructura')">
+                        <span class="dot-chip dot-blue"></span>
+                        <span>Infraestructura & SaaS</span>
+                    </button>
+                    <button class="atajo-chip" onclick="openExpenseModal('publicidad')">
+                        <span class="dot-chip dot-amber"></span>
+                        <span>Publicidad (Ads)</span>
+                    </button>
+                    <button class="atajo-chip" onclick="openExpenseModal('freelancer')">
+                        <span class="dot-chip dot-purple"></span>
+                        <span>Freelancers & Talento</span>
+                    </button>
+                    <button class="atajo-chip" onclick="openExpenseModal('otro')">
+                        <span class="dot-chip dot-gray"></span>
+                        <span>Otros Gastos</span>
+                    </button>
+                    <button class="atajo-chip atajo-with" onclick="openWithdrawalModal()">
+                        <span class="dot-chip dot-green"></span>
+                        <span>+ Retiro Socio</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Live Market Quotes Ribbon (Mercado Argentino & Cripto) -->
+            <div class="market-quotes-card">
+                <div class="mq-header">
+                    <div class="mq-title">
+                        <i data-lucide="coins"></i>
+                        <span>Cotizaciones en Vivo (Mercado Argentino & Cripto)</span>
+                        <span class="mq-pulse-dot" title="Actualizado en tiempo real"></span>
+                    </div>
+                    <div class="mq-actions">
+                        <span class="mq-updated" id="quotes-updated-lbl">Sincronizando...</span>
+                        <button type="button" class="btn-mq-refresh" onclick="fetchLiveQuotes(true)" title="Recargar cotizaciones">
+                            <i data-lucide="rotate-cw"></i>
+                        </button>
+                        <button type="button" class="btn-mq-calc" onclick="openConverterModal()">
+                            <i data-lucide="calculator"></i> <span>Conversor</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="mq-grid">
+                    <div class="mq-item" onclick="openConverterModal(100, 'blue')">
+                        <div class="mq-item-top">
+                            <span class="mq-name">Dólar Blue</span>
+                            <span class="mq-badge-type blue">Informal</span>
+                        </div>
+                        <div class="mq-item-price text-green" id="quote-blue-venta">$0.00</div>
+                        <div class="mq-item-sub">Compra: <span id="quote-blue-compra">$0.00</span></div>
+                    </div>
+
+                    <div class="mq-item" onclick="openConverterModal(100, 'cripto')">
+                        <div class="mq-item-top">
+                            <span class="mq-name">Cripto (USDT)</span>
+                            <span class="mq-badge-type cripto">P2P / Stable</span>
+                        </div>
+                        <div class="mq-item-price text-purple" id="quote-cripto-venta">$0.00</div>
+                        <div class="mq-item-sub">Compra: <span id="quote-cripto-compra">$0.00</span></div>
+                    </div>
+
+                    <div class="mq-item" onclick="openConverterModal(100, 'bolsa')">
+                        <div class="mq-item-top">
+                            <span class="mq-name">Dólar MEP</span>
+                            <span class="mq-badge-type mep">Bolsa</span>
+                        </div>
+                        <div class="mq-item-price text-blue" id="quote-mep-venta">$0.00</div>
+                        <div class="mq-item-sub">Compra: <span id="quote-mep-compra">$0.00</span></div>
+                    </div>
+
+                    <div class="mq-item" onclick="openConverterModal(100, 'oficial')">
+                        <div class="mq-item-top">
+                            <span class="mq-name">Oficial / Tarjeta</span>
+                            <span class="mq-badge-type oficial">BNA / +Imp</span>
+                        </div>
+                        <div class="mq-item-price text-amber" id="quote-oficial-venta">$0.00</div>
+                        <div class="mq-item-sub">Tarjeta: <span id="quote-tarjeta-venta">$0.00</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Flowix Executive Stat Cards Grid -->
+            <div class="cards-grid">
+                <div class="stat-card">
+                    <div class="stat-label">
+                        <span>Facturación / Cobros</span>
+                        <i data-lucide="arrow-up-right" class="text-green icon-sm"></i>
+                    </div>
+                    <div class="stat-value text-green" id="dash-income">$0.00</div>
+                    <div class="stat-sub" id="dash-income-count">0 facturaciones</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-label">
+                        <span>Gastos Operativos</span>
+                        <i data-lucide="arrow-down-right" class="text-red icon-sm"></i>
+                    </div>
+                    <div class="stat-value text-red" id="dash-expenses">$0.00</div>
+                    <div class="stat-sub text-amber" id="dash-pending-expenses">$0 pendiente</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-label">
+                        <span>Ganancia Neta Agencia</span>
+                        <i data-lucide="wallet" class="text-blue icon-sm"></i>
+                    </div>
+                    <div class="stat-value" id="dash-net-profit">$0.00</div>
+                    <div class="stat-sub text-green" id="dash-margin-rate">Margen: 0%</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-label">
+                        <span>Retiros de Socios</span>
+                        <i data-lucide="scale" class="text-purple icon-sm"></i>
+                    </div>
+                    <div class="stat-value" id="dash-withdrawals">$0.00</div>
+                    <div class="stat-sub partner-sub-split">
+                        <span>Franco: <b id="mini-franco-with">$0</b></span>
+                        <span>•</span>
+                        <span>Agustín: <b id="mini-agustin-with">$0</b></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Partner Equilibrium Bar -->
+            <div class="equilibrium-card">
+                <div class="eq-header">
+                    <div class="eq-title">
+                        <i data-lucide="scale"></i>
+                        <span>Balance de Retiros 50 / 50</span>
+                    </div>
+                    <span class="eq-badge" id="balance-status-badge">Equilibrado</span>
+                </div>
+                <div class="eq-bars">
+                    <div class="eq-row">
+                        <div class="eq-meta">
+                            <span>Franco</span>
+                            <strong id="pb-franco-amount">$0.00</strong>
+                        </div>
+                        <div class="eq-track">
+                            <div class="eq-fill fill-franco" id="pb-franco-bar" style="width: 50%;"></div>
+                        </div>
+                    </div>
+                    <div class="eq-row">
+                        <div class="eq-meta">
+                            <span>Agustín</span>
+                            <strong id="pb-agustin-amount">$0.00</strong>
+                        </div>
+                        <div class="eq-track">
+                            <div class="eq-fill fill-agustin" id="pb-agustin-bar" style="width: 50%;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts Grid -->
+            <div class="charts-grid">
+                <div class="chart-box">
+                    <div class="chart-label">Distribución de Gastos por Pilar</div>
+                    <div class="chart-canvas-wrap">
+                        <canvas id="chart-category-doughnut"></canvas>
+                    </div>
+                </div>
+
+                <div class="chart-box">
+                    <div class="chart-label">Flujo de Fondos (Facturación vs Gastos)</div>
+                    <div class="chart-canvas-wrap">
+                        <canvas id="chart-cashflow-bars"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Inset Grouped Recent Movements -->
+            <div class="section-header" style="margin-top: 28px;">
+                <div>
+                    <div class="section-title" style="font-size: 18px;">Últimos Movimientos</div>
+                    <div class="section-sub">Transacciones registradas en tiempo real</div>
+                </div>
+                <button class="btn-ghost" onclick="switchTab('expenses')">Ver Todos ›</button>
+            </div>
+
+            <div id="recent-transactions-list" class="inset-list">
+                <div class="empty-state">Cargando transacciones...</div>
+            </div>
+
+        </section>
+
+        <!-- TAB 2: GASTOS (EXPENSES) -->
+        <section id="tab-expenses" class="panel">
+            <div class="section-header">
+                <div>
+                    <div class="section-title">Gastos Operativos</div>
+                    <div class="section-sub">Control y comprobantes adjuntos</div>
+                </div>
+                <button class="btn-flowix-cta" onclick="openExpenseModal()">
+                    <i data-lucide="plus"></i> Nuevo Gasto
+                </button>
+            </div>
+
+            <!-- Filter Controls -->
+            <div class="filter-controls-card">
+                <div class="search-wrap">
+                    <i data-lucide="search"></i>
+                    <input type="text" id="expense-search" placeholder="Buscar por concepto o notas...">
+                </div>
+                <div class="filters-row">
+                    <select id="filter-expense-cat">
+                        <option value="all">Todas las Categorías</option>
+                        <option value="infraestructura">Infraestructura & SaaS</option>
+                        <option value="publicidad">Publicidad (Ads)</option>
+                        <option value="freelancer">Freelancers</option>
+                        <option value="otro">Otros Gastos</option>
+                    </select>
+
+                    <select id="filter-expense-partner">
+                        <option value="all">Todos los Socios</option>
+                        <option value="Franco">Franco</option>
+                        <option value="Agustin">Agustín</option>
+                    </select>
+
+                    <select id="filter-expense-status">
+                        <option value="all">Todos los Estados</option>
+                        <option value="pagado">Pagado</option>
+                        <option value="pendiente">Pendiente</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Expenses Inset List -->
+            <div id="expenses-table-body" class="inset-list">
+                <div class="empty-state">Cargando gastos...</div>
+            </div>
+        </section>
+
+        <!-- TAB 3: SUSCRIPCIONES & SAAS TRACKER -->
+        <section id="tab-subscriptions" class="panel">
+            <div class="section-header">
+                <div>
+                    <div class="section-title">Rastreador de Suscripciones (SaaS)</div>
+                    <div class="section-sub">Costos fijos recurrentes y burn rate mensual de Flowix</div>
+                </div>
+                <button class="btn-flowix-cta" onclick="openExpenseModal('infraestructura', true)">
+                    <i data-lucide="plus"></i> Nueva Suscripción
+                </button>
+            </div>
+
+            <!-- Burn Rate Overview Cards -->
+            <div class="cards-grid" style="grid-template-columns: repeat(3, 1fr); margin-bottom: 20px;">
+                <div class="stat-card">
+                    <div class="stat-label">
+                        <span>Burn Rate Fijo Mensual</span>
+                        <i data-lucide="refresh-cw" class="text-blue icon-sm"></i>
+                    </div>
+                    <div class="stat-value text-blue" id="saas-monthly-total">$0.00</div>
+                    <div class="stat-sub">Costo recurrente mensual</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-label">
+                        <span>Proyección Anual SaaS</span>
+                        <i data-lucide="calendar" class="text-purple icon-sm"></i>
+                    </div>
+                    <div class="stat-value text-purple" id="saas-yearly-total">$0.00</div>
+                    <div class="stat-sub">12 meses proyectados</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-label">
+                        <span>Herramientas Activas</span>
+                        <i data-lucide="server" class="text-green icon-sm"></i>
+                    </div>
+                    <div class="stat-value text-green" id="saas-active-count">0</div>
+                    <div class="stat-sub">Suscripciones registradas</div>
+                </div>
+            </div>
+
+            <div class="section-header" style="margin-bottom: 12px;">
+                <div class="section-title" style="font-size: 17px;">Listado de Suscripciones Activas</div>
+            </div>
+
+            <div id="subscriptions-list-body" class="inset-list">
+                <div class="empty-state">No hay suscripciones recurrentes registradas.</div>
+            </div>
+        </section>
+
+        <!-- TAB 4: FREELANCERS -->
+        <section id="tab-freelancers" class="panel">
+            <div class="section-header">
+                <div>
+                    <div class="section-title">Freelancers & Contratistas</div>
+                    <div class="section-sub">Directorio de colaboradores y cuentas de cobro</div>
+                </div>
+                <button class="btn-flowix-cta" onclick="openFreelancerModal()">
+                    <i data-lucide="user-plus"></i> Agregar Freelancer
+                </button>
+            </div>
+
+            <div id="freelancers-cards-grid" class="freelancers-list-wrap">
+                <div class="empty-state">Cargando colaboradores...</div>
+            </div>
+        </section>
+
+        <!-- TAB 5: RETIROS SOCIOS -->
+        <section id="tab-partners" class="panel">
+            <div class="section-header">
+                <div>
+                    <div class="section-title">Distribución de Utilidades</div>
+                    <div class="section-sub">Retiros de ganancias de Franco y Agustín</div>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                    <button class="btn-flowix-income" onclick="openSettlementModal()">
+                        <i data-lucide="zap"></i> Cierre de Mes 50/50
+                    </button>
+                    <button class="btn-flowix-cta" onclick="openWithdrawalModal()">
+                        <i data-lucide="plus-circle"></i> Retiro Manual
+                    </button>
+                </div>
+            </div>
+
+            <!-- Partner Cards Summary -->
+            <div class="partner-two-cards">
+                <div class="partner-box box-franco">
+                    <div class="p-box-hdr">
+                        <div class="avatar-circle av-f">F</div>
+                        <div>
+                            <div class="p-box-name">Franco</div>
+                            <div class="p-box-role">Socio Co-Founder</div>
+                        </div>
+                    </div>
+                    <div class="p-box-num" id="partner-franco-total">$0.00</div>
+                    <div class="p-box-sub"><span id="partner-franco-count">0</span> retiros registrados</div>
+                </div>
+
+                <div class="partner-box box-agustin">
+                    <div class="p-box-hdr">
+                        <div class="avatar-circle av-a">A</div>
+                        <div>
+                            <div class="p-box-name">Agustín</div>
+                            <div class="p-box-role">Socio Co-Founder</div>
+                        </div>
+                    </div>
+                    <div class="p-box-num" id="partner-agustin-total">$0.00</div>
+                    <div class="p-box-sub"><span id="partner-agustin-count">0</span> retiros registrados</div>
+                </div>
+            </div>
+
+            <div class="section-header" style="margin-top: 28px; margin-bottom: 12px;">
+                <div class="section-title" style="font-size: 17px;">Historial de Retiros</div>
+            </div>
+
+            <div id="withdrawals-table-body" class="inset-list">
+                <div class="empty-state">Cargando retiros...</div>
+            </div>
+        </section>
+
+        <!-- TAB 6: INGRESOS (INCOME) -->
+        <section id="tab-income" class="panel">
+            <div class="section-header">
+                <div>
+                    <div class="section-title">Facturación & Clientes</div>
+                    <div class="section-sub">Ingresos brutos percibidos por la agencia</div>
+                </div>
+                <button class="btn-flowix-cta" onclick="openIncomeModal()">
+                    <i data-lucide="plus"></i> Registrar Ingreso
+                </button>
+            </div>
+
+            <div id="income-table-body" class="inset-list">
+                <div class="empty-state">Cargando ingresos...</div>
+            </div>
+        </section>
+
+        <!-- TAB 7: REPORTES & CSV -->
+        <section id="tab-reports" class="panel">
+            <div class="section-header">
+                <div>
+                    <div class="section-title">Reportes & Exportación</div>
+                    <div class="section-sub">Genera informes ejecutivos en PDF o descarga tablas en CSV</div>
+                </div>
+                <button class="btn-flowix-cta" onclick="generateExecutivePDF()">
+                    <i data-lucide="file-down"></i> Descargar Reporte PDF
+                </button>
+            </div>
+
+            <div class="reports-grid-ios">
+                <div class="report-ios-card">
+                    <div class="report-icon-box"><i data-lucide="file-text"></i></div>
+                    <div class="report-info">
+                        <div class="report-title">Informe Ejecutivo PDF</div>
+                        <div class="report-desc">Reporte integral del periodo con balance, desglose de costos y retiros.</div>
+                    </div>
+                    <button class="btn-ios-action" onclick="generateExecutivePDF()">
+                        <i data-lucide="download"></i> Generar PDF
+                    </button>
+                </div>
+
+                <div class="report-ios-card">
+                    <div class="report-icon-box"><i data-lucide="receipt"></i></div>
+                    <div class="report-info">
+                        <div class="report-title">Gastos Operativos (CSV)</div>
+                        <div class="report-desc">Descarga completa con categorías, socios responsables y notas.</div>
+                    </div>
+                    <button class="btn-ios-action" onclick="exportDataToCSV('expenses')">
+                        <i data-lucide="download"></i> Descargar CSV
+                    </button>
+                </div>
+
+                <div class="report-ios-card">
+                    <div class="report-icon-box"><i data-lucide="users"></i></div>
+                    <div class="report-info">
+                        <div class="report-title">Freelancers & Contratistas</div>
+                        <div class="report-desc">Directorio de colaboradores con datos de cobro y total pagado.</div>
+                    </div>
+                    <button class="btn-ios-action" onclick="exportDataToCSV('freelancers')">
+                        <i data-lucide="download"></i> Descargar CSV
+                    </button>
+                </div>
+
+                <div class="report-ios-card">
+                    <div class="report-icon-box"><i data-lucide="scale"></i></div>
+                    <div class="report-info">
+                        <div class="report-title">Retiros de Socios (CSV)</div>
+                        <div class="report-desc">Historial detallado de distribución para Franco y Agustín.</div>
+                    </div>
+                    <button class="btn-ios-action" onclick="exportDataToCSV('withdrawals')">
+                        <i data-lucide="download"></i> Descargar CSV
+                    </button>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- MODAL: GASTO (CON SUBIDA DE COMPROBANTE) -->
+    <div class="modal-overlay" id="modal-expense">
+        <div class="modal-dialog">
+            <div class="modal-hdr">
+                <h3 id="modal-expense-title">Registrar Gasto</h3>
+                <button class="modal-x" onclick="closeModal('modal-expense')">&times;</button>
+            </div>
+            <form id="form-expense" onsubmit="saveExpense(event)">
+                <input type="hidden" id="expense-id">
+                
+                <div class="input-grp">
+                    <label>Título / Concepto <span class="req">*</span></label>
+                    <input type="text" id="exp-title" required placeholder="Ej: Servidor Vercel, Meta Ads Q3, OpenAI API...">
+                </div>
+
+                <div class="input-row">
+                    <div class="input-grp">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                            <label style="margin-bottom: 0;">Monto en USD ($) <span class="req">*</span></label>
+                            <button type="button" class="btn-inline-converter" onclick="openInlineConverter('exp-amount')">
+                                <i data-lucide="calculator"></i> <span>Calcular desde ARS</span>
+                            </button>
+                        </div>
+                        <input type="number" step="0.01" id="exp-amount" required placeholder="0.00">
+                    </div>
+                    <div class="input-grp">
+                        <label>Fecha <span class="req">*</span></label>
+                        <input type="date" id="exp-date" required>
+                    </div>
+                </div>
+
+                <div class="input-row">
+                    <div class="input-grp">
+                        <label>Categoría / Pilar <span class="req">*</span></label>
+                        <select id="exp-category" required onchange="handleCategoryChange()">
+                            <option value="infraestructura">Infraestructura & SaaS</option>
+                            <option value="publicidad">Publicidad (Ads)</option>
+                            <option value="freelancer">Freelancers</option>
+                            <option value="otro">Otros Gastos</option>
+                        </select>
+                    </div>
+                    <div class="input-grp" id="freelancer-select-group" style="display: none;">
+                        <label>Asignar a Freelancer</label>
+                        <select id="exp-freelancer-id">
+                            <option value="">-- Seleccionar Freelancer --</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="input-row">
+                    <div class="input-grp">
+                        <label>Registrado Por <span class="req">*</span></label>
+                        <select id="exp-partner" required>
+                            <option value="Franco">Franco</option>
+                            <option value="Agustin">Agustín</option>
+                        </select>
+                    </div>
+                    <div class="input-grp">
+                        <label>Estado de Pago</label>
+                        <select id="exp-status">
+                            <option value="pagado">Pagado</option>
+                            <option value="pendiente">Pendiente de Pago</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="input-row">
+                    <div class="input-grp">
+                        <label>Método de Pago</label>
+                        <select id="exp-payment-method">
+                            <option value="Tarjeta Corporativa">Tarjeta Corporativa</option>
+                            <option value="PayPal">PayPal</option>
+                            <option value="Wise">Wise</option>
+                            <option value="USDT / Cripto">USDT / Cripto</option>
+                            <option value="Transferencia">Transferencia</option>
+                            <option value="Otro">Otro</option>
+                        </select>
+                    </div>
+                    <div class="input-grp">
+                        <label>¿Es Suscripción / Recurrente?</label>
+                        <select id="exp-is-recurring">
+                            <option value="false">Gasto Único</option>
+                            <option value="true">Suscripción Mensual Recurrente</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Receipt / File Upload -->
+                <div class="input-grp">
+                    <label>Adjuntar Comprobante o Factura</label>
+                    <div class="file-upload-box">
+                        <input type="file" id="exp-file-input" accept="image/*,application/pdf" onchange="handleFileSelected(event)">
+                        <span id="file-selected-name" class="text-secondary" style="font-size: 13px;">Ningún archivo seleccionado (opcional)</span>
+                    </div>
+                </div>
+
+                <div class="input-grp">
+                    <label>Notas / Enlace Externo</label>
+                    <input type="text" id="exp-notes" placeholder="Drive URL o notas adicionales...">
+                </div>
+
+                <div class="modal-btn-row">
+                    <button type="button" class="btn-modal-cancel" onclick="closeModal('modal-expense')">Cancelar</button>
+                    <button type="submit" class="btn-modal-submit" id="btn-save-expense">Guardar Gasto</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: ASISTENTE DE CIERRE DE MES & FONDO DE RESERVA -->
+    <div class="modal-overlay" id="modal-settlement">
+        <div class="modal-dialog" style="max-width: 520px;">
+            <div class="modal-hdr">
+                <h3>⚡ Asistente de Cierre de Mes (50 / 50)</h3>
+                <button class="modal-x" onclick="closeModal('modal-settlement')">&times;</button>
+            </div>
+            <div class="settle-box">
+                <p class="settle-desc">Calcula la ganancia neta, aparta el fondo de reserva para Flowix y distribuye el remanente equitativamente entre los dos socios con un clic.</p>
+                
+                <div class="settle-stats">
+                    <div class="settle-stat-row">
+                        <span>Facturación del Periodo:</span>
+                        <strong class="text-green" id="set-income">$0.00</strong>
+                    </div>
+                    <div class="settle-stat-row">
+                        <span>Gastos Operativos Totales:</span>
+                        <strong class="text-red" id="set-expenses">$0.00</strong>
+                    </div>
+                    <div class="settle-stat-row total-highlight">
+                        <span>Ganancia Neta Disponible:</span>
+                        <strong id="set-net-profit">$0.00</strong>
+                    </div>
+                </div>
+
+                <div class="input-grp" style="margin-top: 14px;">
+                    <label>Porcentaje para Fondo de Reserva de Flowix (%):</label>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <input type="number" id="set-reserve-pct" value="20" min="0" max="100" style="width: 90px;" oninput="updateSettlementPreview()">
+                        <span id="set-reserve-amount" class="text-secondary" style="font-size: 14px; font-weight: 600;">Reserva: $0.00</span>
+                    </div>
+                </div>
+
+                <div class="settle-split-preview">
+                    <div class="split-card">
+                        <span>Franco (50%)</span>
+                        <strong class="text-green" id="set-split-franco">$0.00</strong>
+                    </div>
+                    <div class="split-card">
+                        <span>Agustín (50%)</span>
+                        <strong class="text-green" id="set-split-agustin">$0.00</strong>
+                    </div>
+                </div>
+
+                <div class="modal-btn-row" style="margin-top: 20px;">
+                    <button type="button" class="btn-modal-cancel" onclick="closeModal('modal-settlement')">Cancelar</button>
+                    <button type="button" class="btn-flowix-cta" onclick="executeAutoSettlement()">
+                        <i data-lucide="check"></i> Ejecutar Distribución
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: FREELANCER -->
+    <div class="modal-overlay" id="modal-freelancer">
+        <div class="modal-dialog">
+            <div class="modal-hdr">
+                <h3 id="modal-freelancer-title">Agregar Freelancer</h3>
+                <button class="modal-x" onclick="closeModal('modal-freelancer')">&times;</button>
+            </div>
+            <form id="form-freelancer" onsubmit="saveFreelancer(event)">
+                <input type="hidden" id="freelancer-id">
+                <div class="input-grp">
+                    <label>Nombre y Apellido <span class="req">*</span></label>
+                    <input type="text" id="free-name" required placeholder="Ej: Lucas Martínez">
+                </div>
+                <div class="input-grp">
+                    <label>Rol / Especialidad <span class="req">*</span></label>
+                    <input type="text" id="free-role" required placeholder="Ej: Editor de Video, Media Buyer, Dev...">
+                </div>
+                <div class="input-grp">
+                    <label>Contacto (Email / WhatsApp)</label>
+                    <input type="text" id="free-contact" placeholder="lucas@ejemplo.com o +54 9 11...">
+                </div>
+                <div class="input-grp">
+                    <label>Datos de Pago / Wallet</label>
+                    <textarea id="free-payment-details" rows="2" placeholder="USDT TRC20, PayPal o Alias bancario"></textarea>
+                </div>
+                <div class="modal-btn-row">
+                    <button type="button" class="btn-modal-cancel" onclick="closeModal('modal-freelancer')">Cancelar</button>
+                    <button type="submit" class="btn-modal-submit">Guardar Freelancer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: RETIRO -->
+    <div class="modal-overlay" id="modal-withdrawal">
+        <div class="modal-dialog">
+            <div class="modal-hdr">
+                <h3 id="modal-withdrawal-title">Registrar Retiro de Utilidades</h3>
+                <button class="modal-x" onclick="closeModal('modal-withdrawal')">&times;</button>
+            </div>
+            <form id="form-withdrawal" onsubmit="saveWithdrawal(event)">
+                <input type="hidden" id="withdrawal-id">
+                <div class="input-grp">
+                    <label>Socio <span class="req">*</span></label>
+                    <select id="with-partner" required>
+                        <option value="Franco">Franco</option>
+                        <option value="Agustin">Agustín</option>
+                    </select>
+                </div>
+                <div class="input-row">
+                    <div class="input-grp">
+                        <label>Monto Retirado (USD $) <span class="req">*</span></label>
+                        <input type="number" step="0.01" id="with-amount" required placeholder="0.00">
+                    </div>
+                    <div class="input-grp">
+                        <label>Fecha <span class="req">*</span></label>
+                        <input type="date" id="with-date" required>
+                    </div>
+                </div>
+                <div class="input-grp">
+                    <label>Concepto / Notas</label>
+                    <input type="text" id="with-notes" placeholder="Ej: Dividendos del mes, adelanto utilidades...">
+                </div>
+                <div class="modal-btn-row">
+                    <button type="button" class="btn-modal-cancel" onclick="closeModal('modal-withdrawal')">Cancelar</button>
+                    <button type="submit" class="btn-modal-submit" id="btn-save-withdrawal">Confirmar Retiro</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: INGRESO -->
+    <div class="modal-overlay" id="modal-income">
+        <div class="modal-dialog">
+            <div class="modal-hdr">
+                <h3 id="modal-income-title">Registrar Cobro / Facturación</h3>
+                <button class="modal-x" onclick="closeModal('modal-income')">&times;</button>
+            </div>
+            <form id="form-income" onsubmit="saveIncome(event)">
+                <input type="hidden" id="income-id">
+                <div class="input-grp">
+                    <label>Cliente / Nombre del Proyecto <span class="req">*</span></label>
+                    <input type="text" id="inc-client" required placeholder="Ej: Barbería Central, Gimnasio Atlas...">
+                </div>
+                <div class="input-row">
+                    <div class="input-grp">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                            <label style="margin-bottom: 0;">Monto (USD $) <span class="req">*</span></label>
+                            <button type="button" class="btn-inline-converter" onclick="openInlineConverter('inc-amount')">
+                                <i data-lucide="calculator"></i> <span>Calcular desde ARS</span>
+                            </button>
+                        </div>
+                        <input type="number" step="0.01" id="inc-amount" required placeholder="0.00">
+                    </div>
+                    <div class="input-grp">
+                        <label>Fecha <span class="req">*</span></label>
+                        <input type="date" id="inc-date" required>
+                    </div>
+                </div>
+                <div class="input-row">
+                    <div class="input-grp">
+                        <label>Estado</label>
+                        <select id="inc-status">
+                            <option value="cobrado">Cobrado</option>
+                            <option value="pendiente">Pendiente</option>
+                        </select>
+                    </div>
+                    <div class="input-grp">
+                        <label>Registrado Por</label>
+                        <select id="inc-partner">
+                            <option value="Franco">Franco</option>
+                            <option value="Agustin">Agustín</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="input-grp">
+                    <label>Descripción / Método de Cobro</label>
+                    <input type="text" id="inc-desc" placeholder="Ej: Stripe, Wire transfer, USDT...">
+                </div>
+                <div class="modal-btn-row">
+                    <button type="button" class="btn-modal-cancel" onclick="closeModal('modal-income')">Cancelar</button>
+                    <button type="submit" class="btn-modal-submit" id="btn-save-income">Guardar Facturación</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: VISTA PREVIA COMPROBANTE -->
+    <div class="modal-overlay" id="modal-receipt-preview">
+        <div class="modal-dialog" style="max-width: 600px; text-align: center;">
+            <div class="modal-hdr">
+                <h3>Comprobante Adjunto</h3>
+                <button class="modal-x" onclick="closeModal('modal-receipt-preview')">&times;</button>
+            </div>
+            <div id="receipt-preview-content" style="max-height: 70vh; overflow-y: auto; padding: 10px;"></div>
+        </div>
+    </div>
+
+    <!-- MODAL: COTIZADOR & CONVERSOR EN VIVO (USD / ARS / CRIPTO USDT) -->
+    <div class="modal-overlay" id="modal-converter">
+        <div class="modal-dialog modal-converter-dialog">
+            <div class="modal-hdr">
+                <div class="converter-modal-title">
+                    <div class="converter-title-icon">
+                        <i data-lucide="arrow-left-right"></i>
+                    </div>
+                    <div>
+                        <h3>Cotizador & Conversor en Vivo</h3>
+                        <p class="converter-modal-sub">Dólar Blue, MEP, Cripto USDT & Oficial en tiempo real</p>
+                    </div>
+                </div>
+                <button class="modal-x" onclick="closeModal('modal-converter')">&times;</button>
+            </div>
+
+            <div class="converter-body">
+                <!-- Tipo de Cambio Selection Pills -->
+                <div class="converter-rate-selector">
+                    <div class="selector-lbl">Tipo de Cambio Base:</div>
+                    <div class="rate-pills-row">
+                        <button type="button" class="rate-pill active" data-rate-type="blue" onclick="setConverterRateType('blue')">
+                            <span class="pill-name">Blue</span>
+                            <span class="pill-val" id="pill-rate-blue">$0</span>
+                        </button>
+                        <button type="button" class="rate-pill" data-rate-type="cripto" onclick="setConverterRateType('cripto')">
+                            <span class="pill-name">Cripto (USDT)</span>
+                            <span class="pill-val" id="pill-rate-cripto">$0</span>
+                        </button>
+                        <button type="button" class="rate-pill" data-rate-type="bolsa" onclick="setConverterRateType('bolsa')">
+                            <span class="pill-name">MEP Bolsa</span>
+                            <span class="pill-val" id="pill-rate-bolsa">$0</span>
+                        </button>
+                        <button type="button" class="rate-pill" data-rate-type="tarjeta" onclick="setConverterRateType('tarjeta')">
+                            <span class="pill-name">Tarjeta</span>
+                            <span class="pill-val" id="pill-rate-tarjeta">$0</span>
+                        </button>
+                        <button type="button" class="rate-pill" data-rate-type="oficial" onclick="setConverterRateType('oficial')">
+                            <span class="pill-name">Oficial</span>
+                            <span class="pill-val" id="pill-rate-oficial">$0</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Compra / Venta Segmented Switch -->
+                <div class="op-type-row">
+                    <div class="op-segmented">
+                        <button type="button" class="op-btn active" id="op-btn-venta" onclick="setConverterOpType('venta')">Cotización Venta (Comprar USD)</button>
+                        <button type="button" class="op-btn" id="op-btn-compra" onclick="setConverterOpType('compra')">Cotización Compra (Vender USD)</button>
+                    </div>
+                    <div class="active-rate-display">
+                        1 USD = <strong id="active-rate-value" class="text-green">$0.00 ARS</strong>
+                    </div>
+                </div>
+
+                <!-- Main Calculator Card -->
+                <div class="calc-inputs-card">
+                    <!-- USD Input Box -->
+                    <div class="calc-input-box">
+                        <div class="calc-box-hdr">
+                            <span class="calc-curr-lbl">🇺🇸 Dólares Estadounidenses (USD / USDT)</span>
+                            <button type="button" class="btn-copy-chip" onclick="copyConverterUSD()" title="Copiar USD">
+                                <i data-lucide="copy"></i> Copiar
+                            </button>
+                        </div>
+                        <div class="calc-field-wrap">
+                            <span class="calc-symbol">$</span>
+                            <input type="number" id="conv-usd-input" step="any" placeholder="100.00" oninput="handleUSDInput(this.value)">
+                            <span class="calc-badge-cur">USD</span>
+                        </div>
+                        <div class="calc-quick-pills">
+                            <button type="button" onclick="quickAddUSD(50)">+$50</button>
+                            <button type="button" onclick="quickAddUSD(100)">+$100</button>
+                            <button type="button" onclick="quickAddUSD(500)">+$500</button>
+                            <button type="button" onclick="quickAddUSD(1000)">+$1k</button>
+                            <button type="button" onclick="quickAddUSD(2500)">+$2.5k</button>
+                            <button type="button" class="btn-clear-pill" onclick="clearConverterInputs()">Limpiar</button>
+                        </div>
+                    </div>
+
+                    <!-- Swap Divider -->
+                    <div class="calc-swap-divider">
+                        <div class="swap-icon-circle" onclick="toggleConverterDirection()" title="Invertir foco">
+                            <i data-lucide="arrow-down-up"></i>
+                        </div>
+                    </div>
+
+                    <!-- ARS Input Box -->
+                    <div class="calc-input-box">
+                        <div class="calc-box-hdr">
+                            <span class="calc-curr-lbl">🇦🇷 Pesos Argentinos (ARS)</span>
+                            <button type="button" class="btn-copy-chip" onclick="copyConverterARS()" title="Copiar ARS">
+                                <i data-lucide="copy"></i> Copiar
+                            </button>
+                        </div>
+                        <div class="calc-field-wrap">
+                            <span class="calc-symbol">$</span>
+                            <input type="number" id="conv-ars-input" step="any" placeholder="156,000.00" oninput="handleARSInput(this.value)">
+                            <span class="calc-badge-cur">ARS</span>
+                        </div>
+                        <div class="calc-quick-pills">
+                            <button type="button" onclick="quickAddARS(50000)">+$50k</button>
+                            <button type="button" onclick="quickAddARS(100000)">+$100k</button>
+                            <button type="button" onclick="quickAddARS(500000)">+$500k</button>
+                            <button type="button" onclick="quickAddARS(1000000)">+$1M</button>
+                            <button type="button" onclick="quickAddARS(5000000)">+$5M</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Comparison Table: Same amount in all rates -->
+                <div class="comparison-panel">
+                    <div class="comp-title">Equivalencias en Todas las Cotizaciones</div>
+                    <div class="comp-grid">
+                        <div class="comp-card">
+                            <div class="comp-card-hdr">Dólar Blue</div>
+                            <div class="comp-card-ars text-green" id="comp-ars-blue">$0 ARS</div>
+                            <div class="comp-card-rate" id="comp-rate-blue">@ $0</div>
+                        </div>
+                        <div class="comp-card">
+                            <div class="comp-card-hdr">Cripto (USDT)</div>
+                            <div class="comp-card-ars text-purple" id="comp-ars-cripto">$0 ARS</div>
+                            <div class="comp-card-rate" id="comp-rate-cripto">@ $0</div>
+                        </div>
+                        <div class="comp-card">
+                            <div class="comp-card-hdr">Dólar MEP</div>
+                            <div class="comp-card-ars text-blue" id="comp-ars-bolsa">$0 ARS</div>
+                            <div class="comp-card-rate" id="comp-rate-bolsa">@ $0</div>
+                        </div>
+                        <div class="comp-card">
+                            <div class="comp-card-hdr">Dólar Oficial</div>
+                            <div class="comp-card-ars text-amber" id="comp-ars-oficial">$0 ARS</div>
+                            <div class="comp-card-rate" id="comp-rate-oficial">@ $0</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bottom Action Buttons (Flowix Workflow Integration) -->
+                <div class="converter-footer-actions">
+                    <button type="button" class="btn-flowix-cta" onclick="applyConverterToExpense()">
+                        <i data-lucide="plus"></i> Usar en Nuevo Gasto
+                    </button>
+                    <button type="button" class="btn-flowix-income" onclick="applyConverterToIncome()">
+                        <i data-lucide="arrow-up-right"></i> Usar en Nuevo Cobro
+                    </button>
+                    <button type="button" class="btn-modal-cancel" onclick="closeModal('modal-converter')">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MINI MODAL: CONVERSOR DIRECTO DESDE ARS PARA FORMULARIOS -->
+    <div class="modal-overlay" id="modal-inline-ars">
+        <div class="modal-dialog" style="max-width: 440px;">
+            <div class="modal-hdr">
+                <h3>⚡ Conversor Rápido ARS ➔ USD</h3>
+                <button class="modal-x" onclick="closeModal('modal-inline-ars')">&times;</button>
+            </div>
+            <div style="padding: 18px 22px;">
+                <p style="font-size: 13.5px; color: var(--text-secondary); margin-bottom: 14px;">
+                    Ingresá el importe en Pesos Argentinos (ARS) y calcularemos automáticamente su valor en USD para el formulario.
+                </p>
+
+                <div class="input-grp">
+                    <label>Monto en Pesos (ARS) <span class="req">*</span></label>
+                    <input type="number" id="inline-ars-input" placeholder="Ej: 150000" oninput="updateInlineArsCalculation()">
+                </div>
+
+                <div class="input-grp" style="margin-top: 10px;">
+                    <label>Cotización a Aplicar:</label>
+                    <select id="inline-ars-rate-select" onchange="updateInlineArsCalculation()">
+                        <option value="blue">Dólar Blue (Informal)</option>
+                        <option value="cripto">Cripto USDT</option>
+                        <option value="bolsa">Dólar MEP (Bolsa)</option>
+                        <option value="tarjeta">Dólar Tarjeta</option>
+                        <option value="oficial">Dólar Oficial</option>
+                    </select>
+                </div>
+
+                <div class="inline-calc-result-box" style="margin: 16px 0; background: var(--surface-secondary); padding: 14px; border-radius: var(--radius-md); border: 1px solid var(--border);">
+                    <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px;">Resultado Calculado:</div>
+                    <div style="font-size: 24px; font-weight: 700; color: var(--flowix-green);" id="inline-calc-usd-result">$0.00 USD</div>
+                    <div style="font-size: 11.5px; color: var(--text-tertiary); margin-top: 2px;" id="inline-calc-rate-info">Tipo de cambio: $0.00</div>
+                </div>
+
+                <div class="modal-btn-row">
+                    <button type="button" class="btn-modal-cancel" onclick="closeModal('modal-inline-ars')">Cancelar</button>
+                    <button type="button" class="btn-flowix-cta" onclick="confirmInlineArsConversion()">
+                        <i data-lucide="check"></i> Aplicar al Formulario
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <script src="config.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
