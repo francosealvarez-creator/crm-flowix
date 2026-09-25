@@ -501,7 +501,7 @@ function handleFileSelected(e) {
     const nameLabel = document.getElementById('file-selected-name');
     if (!file) {
         state.pendingReceiptBase64 = null;
-        if (nameLabel) nameLabel.textContent = 'Ningún archivo seleccionado (opcional)';
+        if (nameLabel) nameLabel.textContent = 'Subir comprobante o factura (opcional)';
         return;
     }
 
@@ -576,7 +576,7 @@ function openExpenseModal(defaultCategory = 'infraestructura', isRecurring = fal
     
     state.pendingReceiptBase64 = null;
     const nameLabel = document.getElementById('file-selected-name');
-    if (nameLabel) nameLabel.textContent = 'Ningún archivo seleccionado (opcional)';
+    if (nameLabel) nameLabel.textContent = 'Subir comprobante o factura (opcional)';
 
     handleCategoryChange();
     openModal('modal-expense');

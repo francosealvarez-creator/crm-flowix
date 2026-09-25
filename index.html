@@ -822,9 +822,12 @@
                 <!-- Receipt / File Upload -->
                 <div class="input-grp">
                     <label>Adjuntar Comprobante o Factura</label>
-                    <div class="file-upload-box">
+                    <div class="custom-file-upload">
                         <input type="file" id="exp-file-input" accept="image/*,application/pdf" onchange="handleFileSelected(event)">
-                        <span id="file-selected-name" class="text-secondary" style="font-size: 13px;">Ningún archivo seleccionado (opcional)</span>
+                        <div class="file-upload-box">
+                            <i data-lucide="paperclip"></i>
+                            <span id="file-selected-name" class="file-upload-name">Subir comprobante o factura (opcional)</span>
+                        </div>
                     </div>
                 </div>
 
