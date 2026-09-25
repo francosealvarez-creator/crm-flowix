@@ -730,7 +730,7 @@ function renderAllocationHub() {
     const francoVal = partnersVal / 2;
     const agustinVal = partnersVal / 2;
 
-    const rateBlue = state.exchangeRates.blue.venta || 1560;
+    const rateOficial = state.exchangeRates.oficial.venta || 1000;
 
     // Update Stacked Bar Widths
     const barRes = document.getElementById('distrib-bar-reserve');
@@ -749,7 +749,7 @@ function renderAllocationHub() {
     const arsRes = document.getElementById('distrib-ars-reserve');
     if (pctRes) pctRes.textContent = `${savingsPct}%`;
     if (valRes) valRes.textContent = `$${formatNumber(savingsVal)} USD`;
-    if (arsRes) arsRes.textContent = `≈ $${formatNumber(savingsVal * rateBlue)} ARS`;
+    if (arsRes) arsRes.textContent = `≈ $${formatNumber(savingsVal * rateOficial)} ARS`;
 
     // 2. Publicidad / Ads
     const pctAds = document.getElementById('distrib-pct-ads');
@@ -758,7 +758,7 @@ function renderAllocationHub() {
     const dailyAds = document.getElementById('distrib-daily-ads');
     if (pctAds) pctAds.textContent = `${adsPct}%`;
     if (valAds) valAds.textContent = `$${formatNumber(adsVal)} USD`;
-    if (arsAds) arsAds.textContent = `≈ $${formatNumber(adsVal * rateBlue)} ARS`;
+    if (arsAds) arsAds.textContent = `≈ $${formatNumber(adsVal * rateOficial)} ARS`;
     if (dailyAds) dailyAds.textContent = `~$${(adsVal / 30).toFixed(2)} USD/día en Meta & Google Ads`;
 
     // 3. Franco
@@ -767,7 +767,7 @@ function renderAllocationHub() {
     const arsFranco = document.getElementById('distrib-ars-franco');
     if (pctFranco) pctFranco.textContent = `${francoPct}%`;
     if (valFranco) valFranco.textContent = `$${formatNumber(francoVal)} USD`;
-    if (arsFranco) arsFranco.textContent = `≈ $${formatNumber(francoVal * rateBlue)} ARS`;
+    if (arsFranco) arsFranco.textContent = `≈ $${formatNumber(francoVal * rateOficial)} ARS`;
 
     // 4. Agustín
     const pctAgustin = document.getElementById('distrib-pct-agustin');
@@ -775,7 +775,7 @@ function renderAllocationHub() {
     const arsAgustin = document.getElementById('distrib-ars-agustin');
     if (pctAgustin) pctAgustin.textContent = `${agustinPct}%`;
     if (valAgustin) valAgustin.textContent = `$${formatNumber(agustinVal)} USD`;
-    if (arsAgustin) arsAgustin.textContent = `≈ $${formatNumber(agustinVal * rateBlue)} ARS`;
+    if (arsAgustin) arsAgustin.textContent = `≈ $${formatNumber(agustinVal * rateOficial)} ARS`;
 
     // Dynamic Financial Advice
     generateSmartFinancialAdvice(totalIncome, netProfit, marginRate, savingsVal, adsVal, francoVal);
@@ -863,7 +863,7 @@ function updateSettlementPreview() {
     const distributable = Math.max(0, netProfit - resAmt);
     const splitEach = distributable / 2;
 
-    const rateBlue = state.exchangeRates.blue.venta || 1560;
+    const rateOficial = state.exchangeRates.oficial.venta || 1000;
 
     const resLbl = document.getElementById('set-reserve-pct-lbl');
     const resAmountEl = document.getElementById('set-reserve-amount');
@@ -883,9 +883,9 @@ function updateSettlementPreview() {
     if (distEl) distEl.textContent = formatUSD(distributable);
 
     if (splitFranco) splitFranco.textContent = formatUSD(splitEach);
-    if (splitFrancoArs) splitFrancoArs.textContent = `≈ $${formatNumber(splitEach * rateBlue)} ARS`;
+    if (splitFrancoArs) splitFrancoArs.textContent = `≈ $${formatNumber(splitEach * rateOficial)} ARS`;
     if (splitAgustin) splitAgustin.textContent = formatUSD(splitEach);
-    if (splitAgustinArs) splitAgustinArs.textContent = `≈ $${formatNumber(splitEach * rateBlue)} ARS`;
+    if (splitAgustinArs) splitAgustinArs.textContent = `≈ $${formatNumber(splitEach * rateOficial)} ARS`;
 }
 
 async function executeAutoSettlement() {
